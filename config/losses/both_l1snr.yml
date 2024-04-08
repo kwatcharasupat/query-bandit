@@ -1,0 +1,4 @@
+cls: L1SNRLoss
+modality:
+  - audio
+  - spectrogram

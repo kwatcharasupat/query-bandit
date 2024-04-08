@@ -1,0 +1,35 @@
+data_root: ${oc.env:DATA_ROOT}/moisesdb
+cls: MoisesVDBODataModule
+batch_size: 4
+effective_batch_size: null
+num_workers: 8
+train_kwargs:
+  target_length: 8192
+  chunk_size_seconds: 6.0
+  fs: 44100
+  npy_memmap: true
+  augment:
+    - cls: Shift
+      kwargs:
+        p: 1.0
+        min_shift: -0.5
+        max_shift: 0.5
+    - cls: Gain
+      kwargs:
+        p: 1.0
+        min_gain_in_db: -6
+        max_gain_in_db: 6
+    - cls: ShuffleChannels
+      kwargs:
+        p: 0.5
+    - cls: PolarityInversion
+      kwargs:
+        p: 0.5
+val_kwargs:
+  chunk_size_seconds: 6.0
+  hop_size_seconds: 6.0
+  fs: 44100
+  npy_memmap: true
+test_kwargs:
+  npy_memmap: true
+n_channels: 2

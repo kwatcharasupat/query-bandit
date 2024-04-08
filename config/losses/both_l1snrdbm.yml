@@ -1,0 +1,4 @@
+cls: L1SNRDecibelMatchLoss
+modality:
+  - audio
+  - spectrogram

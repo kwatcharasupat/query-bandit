@@ -1,0 +1,18 @@
+data_root: ${oc.env:DATA_ROOT}/moisesdb
+cls: MoisesVDBODataModule
+batch_size: 4
+effective_batch_size: null
+num_workers: 8
+train_kwargs:
+  target_length: 8192
+  chunk_size_seconds: 6.0
+  fs: 44100
+  npy_memmap: true
+val_kwargs:
+  chunk_size_seconds: 6.0
+  hop_size_seconds: 6.0
+  fs: 44100
+  npy_memmap: true
+test_kwargs:
+  npy_memmap: true
+n_channels: 2

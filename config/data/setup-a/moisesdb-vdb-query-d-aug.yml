@@ -1,0 +1,63 @@
+data_root: ${oc.env:DATA_ROOT}/moisesdb
+cls: MoisesDataModule
+batch_size: 4
+effective_batch_size: null
+num_workers: 8
+train_kwargs:
+  target_length: 8192
+  chunk_size_seconds: 6.0
+  query_size_seconds: 10.0
+  top_k_instrument: 10
+  npy_memmap: true
+  mixture_stem: mixture
+  use_own_query: false
+  allowed_stems:
+    [
+      "bass",
+      "drums",
+      "lead_male_singer",
+      "lead_female_singer",
+      # "distorted_electric_guitar",
+      # "clean_electric_guitar",
+      # "acoustic_guitar",
+    ]
+  query_file: "query-10s"
+  augment:
+    - cls: Shift
+      kwargs:
+        p: 1.0
+        min_shift: -0.5
+        max_shift: 0.5
+    - cls: Gain
+      kwargs:
+        p: 1.0
+        min_gain_in_db: -6
+        max_gain_in_db: 6
+    - cls: ShuffleChannels
+      kwargs:
+        p: 0.5
+    - cls: PolarityInversion
+      kwargs:
+        p: 0.5
+val_kwargs:
+  chunk_size_seconds: 6.0
+  hop_size_seconds: 6.0
+  query_size_seconds: 10.0
+  top_k_instrument: 10
+  npy_memmap: true
+  mixture_stem: mixture
+  use_own_query: false
+  allowed_stems: 
+    [
+      "bass",
+      "drums",
+      "lead_male_singer",
+      "lead_female_singer",
+      # "distorted_electric_guitar",
+      # "clean_electric_guitar",
+      # "acoustic_guitar",
+    ]
+  query_file: "query-10s"
+test_kwargs:
+  npy_memmap: true
+n_channels: 2

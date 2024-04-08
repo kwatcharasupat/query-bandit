@@ -1,0 +1,9 @@
+optimizer:
+  cls: Adam
+  kwargs:
+    lr: 1.0e-3
+scheduler:
+  cls: StepLR
+  kwargs:
+    step_size: 1
+    gamma: 0.98

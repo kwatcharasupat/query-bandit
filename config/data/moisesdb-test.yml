@@ -1,0 +1,55 @@
+data_root: ${oc.env:DATA_ROOT}/moisesdb
+cls: MoisesTestDataModule
+batch_size: 1
+effective_batch_size: null
+num_workers: 8
+
+inference_kwargs:
+  chunk_size_seconds: 6.0
+  hop_size_seconds: 0.5
+  batch_size: 24
+  fs: 44100
+
+test_kwargs:
+  npy_memmap: true
+  mixture_stem: mixture
+  use_own_query: false
+  allowed_stems: [
+      "drums",
+      "lead_male_singer",
+      "lead_female_singer",
+      # "human_choir",
+      "background_vocals",
+      # "other_vocals",
+      "bass_guitar",
+      "bass_synthesizer",
+      # "contrabass_double_bass",
+      # "tuba",
+      # "bassoon",
+      "fx",
+      "clean_electric_guitar",
+      "distorted_electric_guitar",
+      # "lap_steel_guitar_or_slide_guitar",
+      "acoustic_guitar",
+      "other_plucked",
+      "pitched_percussion",
+      "grand_piano",
+      "electric_piano",
+      "organ_electric_organ",
+      "synth_pad",
+      "synth_lead",
+      # "violin",
+      # "viola",
+      # "cello",
+      # "violin_section",
+      # "viola_section",
+      # "cello_section",
+      "string_section",
+      "other_strings",
+      "brass",
+      # "flutes",
+      "reeds",
+      "other_wind"
+  ]
+  query_file: "query-10s"
+n_channels: 2
