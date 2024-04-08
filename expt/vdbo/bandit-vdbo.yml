@@ -1,0 +1,12 @@
+seed: 42
+model: ${oc.env:CONFIG_ROOT}/models/bandit-vdbo.yml
+data: ${oc.env:CONFIG_ROOT}/data/moisesdb-vdbo-augment.yml
+trainer: ${oc.env:CONFIG_ROOT}/trainer/default2-long.yml
+loss: ${oc.env:CONFIG_ROOT}/losses/both_l1snr.yml
+optim: ${oc.env:CONFIG_ROOT}/optim/adam.yml
+fast_run: false
+stems:
+  - "vocals"
+  - "bass"
+  - "drums"
+  - "vdbo_others"

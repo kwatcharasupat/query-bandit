@@ -1,0 +1,9 @@
+seed: 42
+model: ${oc.env:CONFIG_ROOT}/models/bandit-query-pre.yml
+data: ${oc.env:CONFIG_ROOT}/data/moisesdb-everything-query-d.yml
+trainer: ${oc.env:CONFIG_ROOT}/trainer/default2.yml
+loss: ${oc.env:CONFIG_ROOT}/losses/both_l1snr.yml
+optim: ${oc.env:CONFIG_ROOT}/optim/adam.yml
+fast_run: false
+stems:
+  - "target"
