@@ -31,11 +31,6 @@ from core.metrics.snr import (
     TargetDecibels,
 )
 from core.models.ebase import EndToEndLightningSystem
-from core.models.e2e.resunet.resunet import (
-    ResUNetPasstConditionedSeparator,
-    ResUNetResQueryConditionedSeparator,
-    # StupidNet
-)
 
 from core.models.e2e.bandit.bandit import Bandit, PasstFiLMConditionedBandit
 
@@ -63,9 +58,6 @@ def _allowed_classes_to_dict(allowed_classes):
 
 
 ALLOWED_MODELS = [
-    ResUNetPasstConditionedSeparator,
-    ResUNetResQueryConditionedSeparator,
-    # StupidNet
     Bandit,
     PasstFiLMConditionedBandit,
 ]
@@ -594,6 +586,90 @@ def clean_validation_metrics(path):
 
     df.to_csv(new_path, index=False)
 
+
+def query_inference_one(config_path: str="/home/kwatchar3/projects/coda/expt/old/bandit-everything-test.yml",
+                        ckpt_path: str = "/mnt/hdd/data/moisesdb/named/vdbgp-d-pre-aug-bal-2cont/lightning_logs/version_0/checkpoints/epoch=149-step=307200.ckpt",
+                        input_path: str="/home/kwatchar3/projects/coda/test_data/toms_diner.wav",
+                        output_path: str="/home/kwatchar3/projects/coda/test_data/toms_diner_out",
+                        query_id="3a047d1a-f56d-4bf4-9910-f4f77206e53d" ,
+                        stems=["guitar", "lead_female_singer", "piano"]
+                        ):
+    config = _load_config(config_path)
+
+    pprint(config)
+    pprint(config.data.inference_kwargs)
+
+
+    model = _build_model(config)
+    loss_handler = _build_loss(config)
+    
+    system = EndToEndLightningSystem.load_from_checkpoint(ckpt_path,
+                                         strict=True,
+                                         model=model,
+        loss_handler=loss_handler,
+        metrics=_dummy_metrics(config),
+        augmentation_handler=_dummy_augmentation(),
+        inference_handler=config.data.inference_kwargs,
+        optimization_bundle=_build_optimization_bundle(config),
+        fast_run=config.fast_run,
+        batch_size=config.data.batch_size,
+        effective_batch_size=config.data.get("effective_batch_size", None),
+        commitment_weight=config.get("commitment_weight", 1.0),)
+
+
+    os.makedirs(output_path, exist_ok=True)
+
+    import torchaudio as ta
+    import numpy as np
+
+    mixture, fs = ta.load(input_path)
+    
+    if fs != 44100:
+        
+        mixture = ta.functional.resample(
+            mixture,
+            orig_freq=fs,
+            new_freq=44100
+        )
+        
+        # raise ValueError(f"Expected 44100, got {fs}")
+    
+    
+    for stem in stems:
+        query = np.load(os.path.expandvars(os.path.join("$DATA_ROOT/moisesdb/npyq", query_id, f"{stem}.query-10s.npy")))  
+        
+        # query = np.load(
+        #     os.path.join(
+        #         "/home/kwatchar3/Documents/data/moisesdb/passt-avg", f"{stem}.query-10s.passt.npy"
+        #     )
+        # )
+        
+        # batch = input_dict(mixture=mixture, query={"passt": torch.from_numpy(query).to(torch.float32)}, metadata={"stem": [stem]})
+        # batch["mixture"]["audio"] = batch["mixture"]["audio"].unsqueeze(0).cuda()
+        # batch["query"]["passt"] = batch["query"]["passt"].unsqueeze(0).cuda()
+        
+        batch = {
+            "mixture": {
+                "audio": mixture.unsqueeze(0).cuda()
+            },
+            "query": {
+                "audio": torch.from_numpy(query).to(torch.float32).unsqueeze(0).cuda()
+            },
+            "metadata": {
+                "stem": [stem]
+            },
+            "estimates": {}
+        }
+        
+        
+        
+        out = system.chunked_inference(batch)
+        # print(out)
+        out_path_stem = os.path.join(output_path, f"{stem}.wav")
+        
+        
+        ta.save(out_path_stem, out["estimates"][stem]["audio"].squeeze().cpu(), 44100)
+        
 
 if __name__ == "__main__":
     import fire
