@@ -12,7 +12,7 @@ by Karn N. Watcharasupat and Alexander Lerch. [arXiv](https://arxiv.org/abs/2406
 For the Cinematic Audio Source Separation model, Bandit, see [this repository](https://github.com/kwatcharasupat/bandit).
 
 
-**Model weights and instruction for using it will come soon! (or latest by mid-August!)**
+**Model weights are available on Zenodo [here](https://zenodo.org/records/13694558).**
 
 ## Citation
 
