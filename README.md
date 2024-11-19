@@ -23,7 +23,7 @@ python train.py inference_byoq \
   --input_path="/path/to/input/file/fearOfMatlab.wav" \ 
   --output_path="/path/to/output/file/fearOfMatlabStemEst/guitar.wav" \
   --query_path="/path/to/query/file/random-guitar.wav" \
-  --batch_size=12 # adjust this as needed
+  --batch_size=12 \
   --use_cuda=true
 ```
 Batch size of 12 _usually_ fits on a RTX 4090.
