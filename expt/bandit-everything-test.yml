@@ -1,20 +1,11 @@
-data_root: ${oc.env:DATA_ROOT}/moisesdb
-cls: MoisesTestDataModule
-batch_size: 1
-effective_batch_size: null
-num_workers: 8
-
-inference_kwargs:
-  chunk_size_seconds: 6.0
-  hop_size_seconds: 0.5
-  batch_size: 12
-  fs: 44100
-
-test_kwargs:
-  npy_memmap: true
-  mixture_stem: mixture
-  use_own_query: false
-  allowed_stems: [
+seed: 42
+model: ${oc.env:CONFIG_ROOT}/models/bandit-query.yml
+data: ${oc.env:CONFIG_ROOT}/data/moisesdb-test.yml
+trainer: ${oc.env:CONFIG_ROOT}/trainer/default.yml
+loss: ${oc.env:CONFIG_ROOT}/losses/both_l1snr.yml
+optim: ${oc.env:CONFIG_ROOT}/optim/adam.yml
+fast_run: false
+stems: [
       "drums",
       "lead_male_singer",
       "lead_female_singer",
@@ -51,5 +42,3 @@ test_kwargs:
       "reeds",
       "other_wind"
   ]
-  query_file: "query-10s"
-n_channels: 2

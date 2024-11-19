@@ -4,6 +4,7 @@ from pprint import pprint
 import random
 import string
 from types import SimpleNamespace
+from typing import List
 import pandas as pd
 
 import torch
@@ -39,6 +40,9 @@ from core.types import LossHandler, OptimizationBundle
 
 from torch import nn, optim
 from torch.optim import lr_scheduler
+
+import torchaudio as ta
+import numpy as np
 
 import torchmetrics as tm
 
@@ -463,6 +467,7 @@ def query_test(config_path: str, ckpt_path: str):
 
     trainer.test(system, dl, ckpt_path=ckpt_path)
 
+
 def query_inference(config_path: str, ckpt_path: str):
     config = _load_config(config_path)
 
@@ -587,25 +592,27 @@ def clean_validation_metrics(path):
     df.to_csv(new_path, index=False)
 
 
-def query_inference_one(config_path: str="/home/kwatchar3/projects/coda/expt/old/bandit-everything-test.yml",
-                        ckpt_path: str = "/mnt/hdd/data/moisesdb/named/vdbgp-d-pre-aug-bal-2cont/lightning_logs/version_0/checkpoints/epoch=149-step=307200.ckpt",
-                        input_path: str="/home/kwatchar3/projects/coda/test_data/toms_diner.wav",
-                        output_path: str="/home/kwatchar3/projects/coda/test_data/toms_diner_out",
-                        query_id="3a047d1a-f56d-4bf4-9910-f4f77206e53d" ,
-                        stems=["guitar", "lead_female_singer", "piano"]
-                        ):
+def query_inference_one(
+    config_path: str,
+    ckpt_path: str,
+    input_path: str,
+    output_path: str,
+    query_id: str,
+    stems: List[str],
+    fs: int = 44100,
+):
     config = _load_config(config_path)
 
     pprint(config)
     pprint(config.data.inference_kwargs)
 
-
     model = _build_model(config)
     loss_handler = _build_loss(config)
-    
-    system = EndToEndLightningSystem.load_from_checkpoint(ckpt_path,
-                                         strict=True,
-                                         model=model,
+
+    system = EndToEndLightningSystem.load_from_checkpoint(
+        os.path.expandvars(ckpt_path),
+        strict=True,
+        model=model,
         loss_handler=loss_handler,
         metrics=_dummy_metrics(config),
         augmentation_handler=_dummy_augmentation(),
@@ -614,62 +621,131 @@ def query_inference_one(config_path: str="/home/kwatchar3/projects/coda/expt/old
         fast_run=config.fast_run,
         batch_size=config.data.batch_size,
         effective_batch_size=config.data.get("effective_batch_size", None),
-        commitment_weight=config.get("commitment_weight", 1.0),)
-
+        commitment_weight=config.get("commitment_weight", 1.0),
+    )
 
     os.makedirs(output_path, exist_ok=True)
 
-    import torchaudio as ta
-    import numpy as np
-
     mixture, fs = ta.load(input_path)
-    
+
     if fs != 44100:
-        
-        mixture = ta.functional.resample(
-            mixture,
-            orig_freq=fs,
-            new_freq=44100
+        mixture = ta.functional.resample(mixture, orig_freq=fs, new_freq=44100)
+
+    for stem in stems:
+        query = np.load(
+            os.path.expandvars(
+                os.path.join(
+                    "$DATA_ROOT/moisesdb/npyq", query_id, f"{stem}.query-10s.npy"
+                )
+            )
         )
         
-        # raise ValueError(f"Expected 44100, got {fs}")
-    
-    
-    for stem in stems:
-        query = np.load(os.path.expandvars(os.path.join("$DATA_ROOT/moisesdb/npyq", query_id, f"{stem}.query-10s.npy")))  
-        
-        # query = np.load(
-        #     os.path.join(
-        #         "/home/kwatchar3/Documents/data/moisesdb/passt-avg", f"{stem}.query-10s.passt.npy"
-        #     )
-        # )
-        
-        # batch = input_dict(mixture=mixture, query={"passt": torch.from_numpy(query).to(torch.float32)}, metadata={"stem": [stem]})
-        # batch["mixture"]["audio"] = batch["mixture"]["audio"].unsqueeze(0).cuda()
-        # batch["query"]["passt"] = batch["query"]["passt"].unsqueeze(0).cuda()
-        
         batch = {
-            "mixture": {
-                "audio": mixture.unsqueeze(0).cuda()
-            },
+            "mixture": {"audio": mixture.unsqueeze(0).cuda()},
             "query": {
                 "audio": torch.from_numpy(query).to(torch.float32).unsqueeze(0).cuda()
             },
-            "metadata": {
-                "stem": [stem]
-            },
-            "estimates": {}
+            "metadata": {"stem": [stem]},
+            "estimates": {},
         }
-        
-        
-        
+
         out = system.chunked_inference(batch)
-        # print(out)
         out_path_stem = os.path.join(output_path, f"{stem}.wav")
-        
-        
         ta.save(out_path_stem, out["estimates"][stem]["audio"].squeeze().cpu(), 44100)
+
+
+def inference_byoq(
+    ckpt_path: str,
+    input_path: str,
+    query_path: str,
+    output_path: str,
+    config_path: str = None,
+    stem_name: str = "target",
+    model_fs: int = 44100,
+    query_length_seconds: float = 10.0,
+    batch_size: int = None,
+    use_cuda: bool = True,
+):
+    
+    assert query_length_seconds == 10.0, "Only 10s queries are supported at the moment."
+    assert model_fs == 44100, "Only 44.1kHz models are supported at the moment."
+    
+    if config_path is None:
+        config_path = "./expt/bandit-everything-test.yml"
+    
+    config = _load_config(config_path)
+    
+    if batch_size is not None:
+        config.data.inference_kwargs.batch_size = batch_size
+
+    pprint(config)
+    pprint(config.data.inference_kwargs)
+
+    model = _build_model(config)
+    loss_handler = _build_loss(config)
+
+    system = EndToEndLightningSystem.load_from_checkpoint(
+        os.path.expandvars(ckpt_path),
+        strict=True,
+        model=model,
+        loss_handler=loss_handler,
+        metrics=_dummy_metrics(config),
+        augmentation_handler=_dummy_augmentation(),
+        inference_handler=config.data.inference_kwargs,
+        optimization_bundle=_build_optimization_bundle(config),
+        fast_run=config.fast_run,
+        batch_size=config.data.batch_size,
+        effective_batch_size=config.data.get("effective_batch_size", None),
+        commitment_weight=config.get("commitment_weight", 1.0),
+    )
+    
+    if use_cuda:
+        system.cuda()
+    else:
+        system.cpu()
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    mixture, fsm = ta.load(input_path)
+    query, fsq = ta.load(query_path)
+
+    if fsm != model_fs:
+        mixture = ta.functional.resample(mixture, orig_freq=fsm, new_freq=model_fs)
         
+    if fsq != model_fs:
+        query = ta.functional.resample(query, orig_freq=fsq, new_freq=model_fs)
+        
+    if query.shape[1] > int(query_length_seconds * model_fs):
+        print(f"Query is longer than {query_length_seconds} seconds. Truncating.")
+        query = query[:, :int(query_length_seconds * model_fs)]
+    elif query.shape[1] < int(query_length_seconds * model_fs):
+        print(f"Query is shorter than {query_length_seconds} seconds. Tiling.")
+        query = torch.cat([query] * (int(query_length_seconds * model_fs) // query.shape[1] + 1), dim=1)
+        query = query[:, :int(query_length_seconds * model_fs)]
+        
+    query = query.unsqueeze(0).to(device=system.device)
+    mixture = mixture.unsqueeze(0).to(device=system.device)
+
+
+    batch = {
+        "mixture": {"audio": mixture},
+        "query": {
+            "audio": query
+        },
+        "metadata": {"stem": [stem_name]},
+        "estimates": {},
+    }
+
+    out = system.chunked_inference(batch)
+    
+    estimate = out["estimates"][stem_name]["audio"].squeeze().cpu()
+    
+    if fsm != model_fs:
+        print("Resampling estimate back to the mixture's original sampling rate.")
+        estimate = ta.functional.resample(estimate, orig_freq=model_fs, new_freq=fsm)
+    
+    ta.save(output_path, estimate, fsm)
+
 
 if __name__ == "__main__":
     import fire
