@@ -11,11 +11,28 @@ by Karn N. Watcharasupat and Alexander Lerch. [arXiv](https://arxiv.org/abs/2406
 
 For the Cinematic Audio Source Separation model, Bandit, see [this repository](https://github.com/kwatcharasupat/bandit).
 
+## Inference
 
-**Model weights are available on Zenodo [here](https://zenodo.org/records/13694558).**
+```bash
+git clone https://github.com/kwatcharasupat/query-bandit.git
+cd query-bandit
+export CONFIG_ROOT="./config"
+
+python train.py inference_byoq \
+  --ckpt_path="/path/to/checkpoint/see-below.ckpt" \
+  --input_path="/path/to/input/file/fearOfMatlab.wav" \ 
+  --output_path="/path/to/output/file/fearOfMatlabStemEst/guitar.wav" \
+  --query_path="/path/to/query/file/random-guitar.wav" \
+  --batch_size=12 # adjust this as needed
+  --use_cuda=true
+```
+Batch size of 12 _usually_ fits on a RTX 4090.
+
+### Model weights
+Model weights are available on Zenodo [here](https://zenodo.org/records/13694558).
+If you are not sure, use `ev-pre-aug.ckpt`.
 
 ## Citation
-
 ```
 @inproceedings{Watcharasupat2024Banquet,
   title = {A Stem-Agnostic Single-Decoder System for Music Source Separation Beyond Four Stems},
